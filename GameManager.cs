@@ -8,8 +8,7 @@ public class GameManager : MonoBehaviour
 {
 	// VARIABLES/ATTRIBUTES
 	public AlienBehaviour[] alienPrefabs;
-	public Transform alienSpawn;
-	public Transform bulletLimitObj;
+	public Transform alienSpawn, bulletLimitObj, ship;
 	public Text textScore, textCounter, timeText;
 	public float nextStep = 5f;
 
@@ -18,18 +17,48 @@ public class GameManager : MonoBehaviour
 	public static int streak = 0;
 	public static int damage = 0;
 
-	private AlienBehaviour[] aliens; 
+	//private AlienBehaviour[] aliens; 
+	private List<AlienBehaviour> aliens = new List<AlienBehaviour>();
 	private float stepCounter = 0;
 
 	private float counter = 0f;
 	private int seconds = 0, minutes = 0;
 
 	// MOCK DATA
-	int cols = 3;
-	int rows = 2;
-	int[] types = {
-		0, 3, 0,
-		2, 1, 2,
+	int cols = 5;
+	int rows = 3;
+
+	public static int currentLevel = 0;
+
+	List<int>[] levels = 
+	{
+		new List<int>()
+		{
+			0, 0, 2, 0, 0,
+			0, 0, 1, 0, 0,
+			0, 1, 0, 1, 0,
+		},
+		new List<int>()
+		{
+			1, 0, 2, 0, 1,
+			0, 1, 0, 1, 0,
+		},
+		new List<int>()
+		{
+			0, 2, 0, 2, 0,
+			1, 0, 3, 0, 1,
+			0, 1, 1, 1, 0,
+			0, 0, 1, 0, 0,
+		},
+		new List<int>()
+		{
+			0, 2, 0, 2, 0,
+			1, 0, 3, 0, 1,
+			0, 1, 1, 1, 0,
+			0, 0, 1, 0, 0,
+			0, 0, 3, 0, 0,
+			0, 2, 0, 2, 0,
+		},
 	};
 
 	// FUNCTIONS/METHODS
@@ -49,28 +78,7 @@ public class GameManager : MonoBehaviour
 
 	private void Start()
 	{
-		aliens = new AlienBehaviour[cols * rows];
-
-		for(int j = 0; j < rows; j++)
-		{
-			Vector2 newPos = alienSpawn.position;
-			newPos.x -= 1.5f;
-			newPos.y -= 1.5f * j;
-
-			for(int i = 0; i < cols; i++)
-			{
-				newPos.x += 1.5f;
-
-				int n = j * cols + i;
-
-				if(types[n] > 0)
-				{
-					int alienType = types[n] - 1;
-
-					aliens[n] = Instantiate(alienPrefabs[alienType], newPos, Quaternion.identity);
-				}
-			}
-		}
+		LoadLevel();
 	}
 
 	private void Update()
@@ -96,20 +104,26 @@ public class GameManager : MonoBehaviour
 		{
 			timeText.text = minutes.ToString("00") + ":" + seconds.ToString("00");
 
-			bool changeScene = true;
-
-			for(int i = 0; i < aliens.Length; i++)
+			// Comprobamos si ya hemos superado el nivel
+			bool changeLevel = true;
+			for(int i = 0; i < aliens.Count; i++)
 			{
 				if(aliens[i] != null)
 				{
-					changeScene = false;
-					i = aliens.Length;
+					changeLevel = false;
+					i = aliens.Count;
 				}
 			}
 
-			if(changeScene)
+			if(changeLevel)
 			{
-				SceneManager.LoadScene("Ranking");
+				if(currentLevel < levels.Length - 1)
+				{
+					currentLevel++;
+
+					LoadLevel();
+				}
+				else SceneManager.LoadScene("Ranking");
 			}
 
 			// Actualizar el score
@@ -122,15 +136,17 @@ public class GameManager : MonoBehaviour
 				if(Random.Range(0, 10) == 0)
 				{
 					// Solo dispararán los aliens que estén más abajo de cada columna
-					for(int i = aliens.Length - cols; i < aliens.Length; i++)
+					for(int i = aliens.Count - cols; i < aliens.Count; i++)
 					{
 						for(int j = 0; j < rows; j++)
 						{
 							int n = i - cols * j;
 
+							//Debug.Log("i: " + i + ", j: " + j);
+
 							if(aliens[n] != null)
 							{
-								if(Random.Range(0, 100) == 0) aliens[n].Shoot();
+								if(aliens[n].transform.position.y < bulletLimit && Random.Range(0, 100) == 0) aliens[n].Shoot();
 
 								j = rows;
 							}
@@ -142,10 +158,20 @@ public class GameManager : MonoBehaviour
 			}
 			else
 			{
-				for(int i = 0; i < aliens.Length; i++)
+				for(int i = 0; i < aliens.Count; i++)
 				{
 					// Si la variable aliens[i] es Null quiere decir que no tiene ninguna referencia
-					if(aliens[i] != null) aliens[i].StepDown();
+					if(aliens[i] != null)
+					{
+						aliens[i].StepDown();
+
+						if(aliens[i].transform.position.y <= ship.position.y)
+						{
+							SceneManager.LoadScene("Ranking");
+
+							i = aliens.Count;
+						}
+					}
 				}
 
 				stepCounter = 0;
@@ -164,6 +190,37 @@ public class GameManager : MonoBehaviour
 				textCounter.enabled = false;
 
 				seconds = 0;
+			}
+		}
+	}
+
+	private void LoadLevel()
+	{
+		aliens.Clear();
+		
+		rows = levels[currentLevel].Count / cols;
+
+		if(currentLevel != 0) alienSpawn.position = new Vector2(alienSpawn.position.x, 9 + rows);
+
+		for(int j = 0; j < rows; j++)
+		{
+			Vector2 newPos = alienSpawn.position;
+			newPos.x -= 1.5f;
+			newPos.y -= 1.5f * j;
+
+			for(int i = 0; i < cols; i++)
+			{
+				newPos.x += 1.5f;
+
+				int n = j * cols + i;
+
+				if(levels[currentLevel][n] > 0)
+				{
+					int alienType = levels[currentLevel][n] - 1;
+
+					aliens.Add(Instantiate(alienPrefabs[alienType], newPos, Quaternion.identity));
+				}
+				else aliens.Add(null);
 			}
 		}
 	}

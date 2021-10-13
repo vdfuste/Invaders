@@ -83,11 +83,23 @@ public class ShipBehaviour : MonoBehaviour
 
 			Destroy(col.gameObject);
 		}
+		else if(col.gameObject.tag == "Alien")
+		{
+			SceneManager.LoadScene("Ranking");
+		}
+		else if(col.gameObject.tag == "Powerup")
+		{
+			UpdateHealth(health * (1 + 1 / health) - health);
+
+			Destroy(col.gameObject);
+		}
 	}
 
 	private void UpdateHealth(int amount)
 	{
 		health += amount;
+
+		if(health > 100) health = 100;
 
 		healthText.text = "Health " + health;
 

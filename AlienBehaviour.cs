@@ -8,6 +8,7 @@ public class AlienBehaviour : MonoBehaviour
 	public GameObject bullet;
 	public Transform bulletParent;
 	public TextMesh alienScoreText;
+	public GameObject powerup;
 
 
 	// FUNCTIONS/METHODS
@@ -28,8 +29,11 @@ public class AlienBehaviour : MonoBehaviour
 
 			Persistant.score += finalScore;
 
+			alienScoreText.text = finalScore.ToString(); 
 			Instantiate(alienScoreText, transform.position, Quaternion.identity);
 			
+			if(Random.Range(0, 100 - (10 * GameManager.currentLevel)) == 0) Instantiate(powerup, transform.position, Quaternion.identity);
+
 			// Este destroy se destruye a si mismo
 			Destroy(gameObject);
 

@@ -80,6 +80,8 @@ public class RankingManager : MonoBehaviour
 
 			scores[i].text = newScore;
 		}
+
+		Persistant.score = 0;
 	}
 
 	private void Update()
@@ -98,8 +100,6 @@ public class RankingManager : MonoBehaviour
 					PlayerPrefs.SetString(scores[i].name, newScore);
 				}
 			}
-
-			Persistant.score = 0;
 
 			SceneManager.LoadScene("Game");
 		}
